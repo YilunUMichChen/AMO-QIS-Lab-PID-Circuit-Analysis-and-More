@@ -46,10 +46,10 @@ These assumptions are useful for deriving the clean textbook equations, but real
 
 ## 1. Voltage Follower / Unity-Gain Buffer
 
-![Unity-gain follower](assets/op_amp_configurations/unity_gain_buffer_wikimedia.png)
+![Unity-gain follower](assets/op_amp_configurations_white/unity_gain_buffer_wikimedia_white.jpg)
 
 Source page: Wikimedia Commons, Op-Amp Unity-Gain Buffer.svg.  
-Local image file: `assets/op_amp_configurations/unity_gain_buffer_wikimedia.png`
+Local image file: `assets/op_amp_configurations_white/unity_gain_buffer_wikimedia_white.jpg`
 
 Function: voltage buffering without voltage gain.
 
@@ -77,10 +77,10 @@ Practical notes:
 
 ## 2. Non-Inverting Amplifier
 
-![Non-inverting amplifier with gain](assets/op_amp_configurations/non_inverting_amplifier_wikimedia.png)
+![Non-inverting amplifier with gain](assets/op_amp_configurations_white/non_inverting_amplifier_wikimedia_white.jpg)
 
 Source page: Wikimedia Commons, Op-Amp Non-Inverting Amplifier.svg.  
-Local image file: `assets/op_amp_configurations/non_inverting_amplifier_wikimedia.png`
+Local image file: `assets/op_amp_configurations_white/non_inverting_amplifier_wikimedia_white.jpg`
 
 Function: amplify a voltage without phase inversion.
 
@@ -109,10 +109,10 @@ Practical notes:
 
 ## 3. Inverting Amplifier
 
-![Inverting amplifier](assets/op_amp_configurations/inverting_amplifier_wikimedia.png)
+![Inverting amplifier](assets/op_amp_configurations_white/inverting_amplifier_wikimedia_white.jpg)
 
 Source page: Wikimedia Commons, Op-Amp Inverting Amplifier.svg.  
-Local image file: `assets/op_amp_configurations/inverting_amplifier_wikimedia.png`
+Local image file: `assets/op_amp_configurations_white/inverting_amplifier_wikimedia_white.jpg`
 
 Function: amplify with 180-degree phase inversion.
 
@@ -140,10 +140,10 @@ Practical notes:
 
 ## 4. Inverting Summing Amplifier
 
-![Summing amplifier configuration](assets/op_amp_configurations/summing_amplifier_wikimedia.png)
+![Summing amplifier configuration](assets/op_amp_configurations_white/summing_amplifier_wikimedia_white.jpg)
 
 Source page: Wikimedia Commons, Op-Amp Summing Amplifier.svg.  
-Local image file: `assets/op_amp_configurations/summing_amplifier_wikimedia.png`
+Local image file: `assets/op_amp_configurations_white/summing_amplifier_wikimedia_white.jpg`
 
 Function: weighted addition of several input voltages with inversion.
 
@@ -176,10 +176,10 @@ Practical notes:
 
 ## 5. Difference Amplifier / Subtractor
 
-![Difference amplifier](assets/op_amp_configurations/differential_amplifier_wikimedia.png)
+![Difference amplifier](assets/op_amp_configurations_white/differential_amplifier_wikimedia_white.jpg)
 
 Source page: Wikimedia Commons, Op-Amp Differential Amplifier.svg.  
-Local image file: `assets/op_amp_configurations/differential_amplifier_wikimedia.png`
+Local image file: `assets/op_amp_configurations_white/differential_amplifier_wikimedia_white.jpg`
 
 Function: subtract two input voltages and optionally apply gain.
 
@@ -212,10 +212,10 @@ Practical notes:
 
 ## 6. Instrumentation Amplifier
 
-![Instrumentation amplifier example circuit](assets/op_amp_configurations/instrumentation_amplifier_wikimedia.png)
+![Instrumentation amplifier example circuit](assets/op_amp_configurations_white/instrumentation_amplifier_wikimedia_white.jpg)
 
 Source page: Wikimedia Commons, Op-Amp Instrumentation Amplifier.svg.  
-Local image file: `assets/op_amp_configurations/instrumentation_amplifier_wikimedia.png`
+Local image file: `assets/op_amp_configurations_white/instrumentation_amplifier_wikimedia_white.jpg`
 
 Function: high-input-impedance differential amplification with strong common-mode rejection.
 
@@ -248,10 +248,10 @@ Practical notes:
 
 ## 7. Transimpedance Amplifier / Photodiode Amplifier
 
-![Simple transimpedance amplifier circuit](assets/op_amp_configurations/transimpedance_amplifier_wikimedia.png)
+![Simple transimpedance amplifier circuit](assets/op_amp_configurations_white/transimpedance_amplifier_wikimedia_white.jpg)
 
 Source page: Wikimedia Commons, Transimpedance amplifier, simple.svg.  
-Local image file: `assets/op_amp_configurations/transimpedance_amplifier_wikimedia.png`
+Local image file: `assets/op_amp_configurations_white/transimpedance_amplifier_wikimedia_white.jpg`
 
 Function: convert input current to output voltage.
 
@@ -281,10 +281,10 @@ Practical notes:
 
 ## 8. Inverting Integrator
 
-![Inverting integrator](assets/op_amp_configurations/integrating_amplifier_wikimedia.png)
+![Inverting integrator](assets/op_amp_configurations_white/integrating_amplifier_wikimedia_white.jpg)
 
 Source page: Wikimedia Commons, Op-Amp Integrating Amplifier.svg.  
-Local image file: `assets/op_amp_configurations/integrating_amplifier_wikimedia.png`
+Local image file: `assets/op_amp_configurations_white/integrating_amplifier_wikimedia_white.jpg`
 
 Function: output is proportional to the time integral of input voltage.
 
@@ -313,10 +313,10 @@ Practical notes:
 
 ## 9. Inverting Differentiator
 
-![Inverting differentiator](assets/op_amp_configurations/differentiating_amplifier_wikimedia.png)
+![Inverting differentiator](assets/op_amp_configurations_white/differentiating_amplifier_wikimedia_white.jpg)
 
 Source page: Wikimedia Commons, Op-Amp Differentiating Amplifier.svg.  
-Local image file: `assets/op_amp_configurations/differentiating_amplifier_wikimedia.png`
+Local image file: `assets/op_amp_configurations_white/differentiating_amplifier_wikimedia_white.jpg`
 
 Function: output is proportional to the time derivative of input voltage.
 
@@ -344,10 +344,10 @@ Practical notes:
 
 ## 10. First-Order Active Low-Pass Amplifier
 
-![First-order active low-pass filter](assets/op_amp_configurations/active_lowpass_filter_wikimedia.png)
+![First-order active low-pass filter](assets/op_amp_configurations_white/active_lowpass_filter_wikimedia_white.jpg)
 
 Source page: Wikimedia Commons, Active Lowpass Filter RC.svg.  
-Local image file: `assets/op_amp_configurations/active_lowpass_filter_wikimedia.png`
+Local image file: `assets/op_amp_configurations_white/active_lowpass_filter_wikimedia_white.jpg`
 
 Function: pass low-frequency signals, attenuate high-frequency signals, and optionally provide gain.
 
@@ -376,10 +376,10 @@ Practical notes:
 
 ## 11. Sallen-Key Active Filter
 
-![Sallen-Key filter example](assets/op_amp_configurations/sallen_key_filter_wikimedia.png)
+![Sallen-Key filter example](assets/op_amp_configurations_white/sallen_key_filter_wikimedia_white.jpg)
 
 Source page: Wikimedia Commons, Sallen-Key-Filter.svg.  
-Local image file: `assets/op_amp_configurations/sallen_key_filter_wikimedia.png`
+Local image file: `assets/op_amp_configurations_white/sallen_key_filter_wikimedia_white.jpg`
 
 Function: second-order active filter topology; can implement low-pass, high-pass, and band-pass variants.
 
@@ -412,10 +412,10 @@ Practical notes:
 
 ## 12. Comparator-Like Op-Amp Use
 
-![Op-amp comparator circuit](assets/op_amp_configurations/comparator_wikimedia.png)
+![Op-amp comparator circuit](assets/op_amp_configurations_white/comparator_wikimedia_white.jpg)
 
 Source page: Wikimedia Commons, Op-Amp Comparator.svg.  
-Local image file: `assets/op_amp_configurations/comparator_wikimedia.png`
+Local image file: `assets/op_amp_configurations_white/comparator_wikimedia_white.jpg`
 
 Function: compare an input voltage against a reference and drive the output high or low.
 
@@ -443,10 +443,10 @@ Practical notes:
 
 ## 13. Schmitt Trigger / Comparator with Hysteresis
 
-![Op-Amp Schmitt Trigger](assets/op_amp_configurations/schmitt_trigger_wikimedia.png)
+![Op-Amp Schmitt Trigger](assets/op_amp_configurations_white/schmitt_trigger_wikimedia_white.jpg)
 
 Source page: Wikimedia Commons, Op-Amp Schmitt Trigger.svg.  
-Local image file: `assets/op_amp_configurations/schmitt_trigger_wikimedia.png`
+Local image file: `assets/op_amp_configurations_white/schmitt_trigger_wikimedia_white.jpg`
 
 Function: comparator with two switching thresholds.
 
@@ -475,10 +475,10 @@ Practical notes:
 
 ## 14. Logarithmic Amplifier
 
-![Op-amp logarithmic amplifier](assets/op_amp_configurations/logarithmic_amplifier_wikimedia.png)
+![Op-amp logarithmic amplifier](assets/op_amp_configurations_white/logarithmic_amplifier_wikimedia_white.jpg)
 
 Source page: Wikimedia Commons, Op-Amp Logarithmic Amplifier.svg.  
-Local image file: `assets/op_amp_configurations/logarithmic_amplifier_wikimedia.png`
+Local image file: `assets/op_amp_configurations_white/logarithmic_amplifier_wikimedia_white.jpg`
 
 Function: produce an output approximately proportional to the logarithm of input current or voltage.
 
@@ -506,17 +506,17 @@ Practical notes:
 
 ## 15. Precision Rectifier / Absolute-Value Amplifier
 
-![Op-amp precision rectifier](assets/op_amp_configurations/precision_rectifier_wikimedia.png)
+![Op-amp precision rectifier](assets/op_amp_configurations_white/precision_rectifier_wikimedia_white.jpg)
 
 Source page: Wikimedia Commons, Op-Amp Precision Rectifier.svg.  
-Local image file: `assets/op_amp_configurations/precision_rectifier_wikimedia.png`
+Local image file: `assets/op_amp_configurations_white/precision_rectifier_wikimedia_white.jpg`
 
 Full-wave version:
 
-![Op-amp full-wave precision rectifier](assets/op_amp_configurations/precision_rectifier_full_wave_wikimedia.png)
+![Op-amp full-wave precision rectifier](assets/op_amp_configurations_white/precision_rectifier_full_wave_wikimedia_white.jpg)
 
 Source page: Wikimedia Commons, Op-Amp Precision Rectifier full wave.svg.  
-Local image file: `assets/op_amp_configurations/precision_rectifier_full_wave_wikimedia.png`
+Local image file: `assets/op_amp_configurations_white/precision_rectifier_full_wave_wikimedia_white.jpg`
 
 Function: rectify signals smaller than a diode drop by placing the diode inside the op amp feedback path.
 
