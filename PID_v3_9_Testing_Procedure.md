@@ -18,17 +18,18 @@ The board should be tested stage by stage. Do not start by connecting the laser
 PZT or current actuator. First prove that each internal signal is sane when the
 input is a known waveform from a function generator.
 
-The basic signal chain is:
+The basic signal chain discussed for the PID/PD-box debugging is:
 
 ```text
-IN1 -> GIN1 -> PREIN -> SUM -> MONITOR
-                         |
-                         +-> OPP -> OPOUT -> OUT
-                         |
-                         +-> INT -> OPOUT -> OUT
-                         |
-                         +-> C_POL_OP -> C_PROP -> C_FLOAT -> C_OUT
+spectroscopy input -> pre-gain -> offset / bias summing
+                   -> P and I branches
+                   -> summing amplifier
+                   -> final output
 ```
+
+In the schematic names used in this note, this corresponds approximately to
+`IN1 -> GIN1 -> PREIN -> SUM -> MONITOR`, with `SUM` feeding the `OPP`, `INT`,
+and current-lock branches.
 
 The final output stage `OPOUT` also accepts auxiliary external inputs:
 
@@ -40,6 +41,13 @@ SUM_IN3  -> R96 -> OPOUT summing node
 
 These auxiliary terms are useful for modulation, grating-offset injection, and
 future spare summing input use.
+
+A key meeting-level debugging point is headroom: the bias or scan voltage before
+a later op-amp output stage should not be allowed to approach the supply rails.
+One reported failure mode was a relevant bias node approaching roughly `15 V`,
+which is too large for the following op-amp stage to process usefully. The
+testing procedure should therefore check both waveform shape and DC level at
+each stage.
 
 ## 2. Required Equipment
 
@@ -78,6 +86,9 @@ Before applying power:
    capacitor is installed in the intended pad pair.
 10. Verify that the expected IC types are available and separated:
     `OP27/OP27G`, `OP270`, `AD711`, and `REF02` are not interchangeable.
+11. Identify any small capacitors placed across feedback/gain stages. These are
+    usually for high-frequency rolloff and stability, not for the main
+    integrator time constant.
 
 Known practical risk from the notes: the negative regulator path previously
 showed a fault, and replacing the regulator fixed the rail. Treat the `-15 V`
@@ -198,6 +209,23 @@ a real saturated-absorption or laser-lock setup, the raw error signal may not be
 perfectly centered at zero. The offset lets the user move the lock point and
 compensate for DC imbalance before the PI controller acts.
 
+This offset/bias path also needs a headroom check. Meeting notes flagged a
+failure mode in related PID/PD boxes where the bias before a later op-amp output
+stage could become too large, approaching the rail-scale range around `15 V`.
+That is not useful control range; it risks saturating the next stage. Some early
+gain stages were estimated to be reasonable, with several gains near `1`, one
+variable gain stage roughly in the `1` to `5` range, and one relevant offset
+range around `+/-0.8 V`. The practical lesson is to keep the earlier bias/scan
+range modest and recover output range later with controlled gain.
+
+If a measured bias range is too large, the proposed fix is attenuation before
+the sensitive op-amp input, for example by adding series/summing resistors on
+the order of `100 kOhm` where appropriate. The goal is:
+
+```text
+reduce scan/bias range -> avoid op-amp saturation -> increase later gain if needed
+```
+
 ## 7. Phase 4: Stage-by-Stage Signal Test
 
 ### Purpose
@@ -286,6 +314,15 @@ k_{\mathrm{pre}}V_{\mathrm{PREIN}}
 \right)
 $$
 
+At this stage, record the DC level as well as the waveform amplitude. A clean
+triangle wave riding on a large DC bias is still a problem if it pushes the next
+op-amp close to its input or output range. The test should therefore answer two
+questions:
+
+1. Is the waveform sign/gain correct?
+2. Is the bias small enough that the following `OPP`, `INT`, and `OPOUT`
+   stages retain useful headroom?
+
 ### MONITOR
 
 Probe the monitor/error output.
@@ -299,6 +336,12 @@ $$
 The monitor is intentionally placed after `SUM` because it shows the actual
 conditioned internal error signal that will drive the P, I, and current-lock
 branches.
+
+Small capacitors in preamp or feedback paths should be interpreted separately
+from the large integrator capacitors. A small feedback capacitor reduces
+high-frequency gain, suppresses noise amplification, and improves stability. It
+does not set the main low-frequency integral action in the same way as the
+selected `INT` feedback capacitor.
 
 ## 8. Phase 5: Proportional and Integral Behavior
 
@@ -364,6 +407,33 @@ Larger selected capacitance gives slower integration and smoother output.
 Smaller selected capacitance gives faster correction but can be noisier or more
 oscillation-prone in a closed loop.
 
+When a resistor is placed across the feedback capacitor, it should not be
+treated as merely another ideal-integrator input resistor. It gives the
+capacitor a discharge path. This changes the long-time behavior:
+
+```text
+ideal integrator:    output can keep accumulating until it rails
+leaky integrator:    output slowly relaxes through the parallel resistor
+```
+
+In Laplace-domain terms, an ideal capacitive feedback impedance is
+
+$$
+Z_C = \frac{1}{sC}
+$$
+
+while a capacitor with a parallel discharge resistor is
+
+$$
+Z_f = R_{\mathrm{leak}} \parallel \frac{1}{sC}
+    = \frac{R_{\mathrm{leak}}}{1+sR_{\mathrm{leak}}C}
+$$
+
+Thus changing an input resistor and changing a leakage/discharge resistor can
+produce curves that look superficially similar over a limited simulation window,
+but they are not the same circuit operation. The input resistor mainly changes
+integration rate; the parallel resistor limits long-time drift and saturation.
+
 ### Relevant Internal Switches
 
 The notes highlight these switch functions:
@@ -385,6 +455,14 @@ mounting the module.
 
 Verify the independent current-lock output path before it is connected to any
 laser-current actuator.
+
+The current-lock section may not be used in every laser setup. Historically,
+some systems used a separate current-locking NIM box rather than using the
+current-feedback branch on this PID board. It is still important to understand
+and test the section because current feedback is faster than PZT feedback.
+PZT feedback changes the cavity length mechanically and has limited bandwidth;
+current modulation can respond faster, help narrow the laser linewidth, and can
+be important for high-resolution spectroscopy or precision Rydberg experiments.
 
 The current-lock path is:
 
@@ -546,6 +624,31 @@ Practical order:
 9. Adjust the selected integrator capacitor/time constant.
 10. Record final switch states, pot settings, and measured waveforms.
 
+The same saturated-absorption signal can also be used to estimate laser
+frequency noise during tuning. Place the laser frequency on the side of an
+absorption feature, where the spectroscopy slope converts frequency noise into
+voltage noise:
+
+```text
+laser frequency noise -> sat-spec voltage noise -> scope RMS / FFT estimate
+```
+
+If the local spectroscopy slope is known, voltage noise can be converted into
+frequency noise:
+
+$$
+\delta \nu_{\mathrm{rms}}
+\approx
+\frac{\delta V_{\mathrm{rms}}}
+{\left|dV/d\nu\right|}
+$$
+
+Use an oscilloscope time base appropriate to the noise frequencies of interest.
+RMS measurements are often sufficient for practical tuning, while Fourier
+analysis can reveal acoustic or mechanical resonances. Exact prediction is
+difficult because real laser noise depends on mechanical, electronic, thermal,
+and optical details.
+
 ## 15. Data Log Template
 
 Use one row per test condition.
@@ -555,8 +658,10 @@ Use one row per test condition.
 |  | Power only | none | ICs removed | n/a | `+15 V`, `-15 V` | rails correct |  |  |  |
 |  | Reference | none | `JP1 = 1-2` | offset swept | `+5 V`, `-5 V` | refs correct |  |  |  |
 |  | Input chain | triangle | polarity set | gains near 1 | `GIN1`, `PREIN`, `SUM` | sign/gain match |  |  |  |
+|  | Bias/headroom | triangle or DC sweep | offset routed | gains low | `SUM`, `OPP`, `OPOUT` inputs | no near-rail bias |  |  |  |
 |  | Integrator | zero-centered square | selected `S1` | I gain set | `INT` | ramp/RC waveform |  |  |  |
 |  | Output | small signal | lock off/on tested | `G_OUT` swept | `OUT` | bounded output |  |  |  |
+|  | Laser-noise check | sat-spec side slope | loop open or controlled | low gain | `MONITOR`, scope trace | voltage noise measurable |  |  |  |
 
 ## 16. Acceptance Criteria
 
@@ -566,10 +671,13 @@ The board is ready for cautious closed-loop testing only when:
 2. ICs are correctly installed and remain cool during operation.
 3. Offset generation works and `JP1` routing is understood.
 4. `GIN1`, `PREIN`, `SUM`, and `MONITOR` produce expected waveforms.
-5. P-only behavior is verified.
-6. Integrator behavior is verified for the selected internal switch state.
-7. `C_OUT` and `OUT` are bounded and respond to the correct controls.
-8. Front-panel BNCs, switches, and pots are mapped to schematic names.
-9. Grating-offset continuity through `R94` is verified.
-10. The final closed-loop sign has been checked using a small, reversible
+5. Bias/headroom is checked so no stage drives the next op amp near the rails
+   during normal scan or offset operation.
+6. P-only behavior is verified.
+7. Integrator behavior is verified for the selected internal switch state,
+   including any leakage/discharge resistor behavior.
+8. `C_OUT` and `OUT` are bounded and respond to the correct controls.
+9. Front-panel BNCs, switches, and pots are mapped to schematic names.
+10. Grating-offset continuity through `R94` is verified.
+11. The final closed-loop sign has been checked using a small, reversible
     perturbation before full lock engagement.
