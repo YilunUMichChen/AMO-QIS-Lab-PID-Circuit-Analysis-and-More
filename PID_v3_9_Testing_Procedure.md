@@ -1,10 +1,11 @@
 # PID v3.9 Circuit Testing Procedure
 
 This note is a practical bring-up and debugging procedure for the PID v3.9
-circuit. It is based on the handwritten testing notes, the schematic-level
-analysis, and the current interpretation of the NIM-box wiring. The goal is to
-verify the board in a controlled order: power first, then references and
-offsets, then signal stages, then PI behavior, then actuator-facing outputs.
+circuit. It is based on the handwritten testing notes, Xinyu Feng's PI
+calibration note, the schematic-level analysis, and the current interpretation
+of the NIM-box wiring. The goal is to verify the board in a controlled order:
+power first, then references and offsets, then signal stages, then PI behavior,
+then actuator-facing outputs.
 
 The most important rule is:
 
@@ -62,12 +63,16 @@ each stage.
 
 Recommended initial function-generator signals:
 
-- Stage-by-stage gain/sign tests: `1 Vpp` to `2 Vpp` triangle wave, centered at
-  `0 V`.
-- Integrator tests: square wave centered at `0 V`.
+- Stage-by-stage gain/sign tests: a small zero-centered square wave, typically
+  `0.2 Vpp` to `0.5 Vpp` at first.
+- Larger signal-chain stress tests, only after basic gain/sign checks pass:
+  `1 Vpp` to `2 Vpp`, centered at `0 V`.
+- Integrator tests: zero-centered square wave.
 
 The zero-centered square wave matters. A square wave with DC offset will be
 integrated as a nonzero average input and can drive the integrator into a rail.
+Use oscilloscope DC coupling when checking offsets; AC coupling can hide the
+very DC shift that the offset knob is supposed to create.
 
 ## 3. Preflight Inspection
 
@@ -209,6 +214,36 @@ a real saturated-absorption or laser-lock setup, the raw error signal may not be
 perfectly centered at zero. The offset lets the user move the lock point and
 compensate for DC imbalance before the PI controller acts.
 
+If the offset circuit is not broken but the offset appears to have no visible
+effect, the most likely explanations are measurement configuration and gain
+allocation rather than a failed offset source. First check that `JP1` is in the
+state that actually routes the offset into `SUM`. Then check that the scope is
+DC-coupled and that the probe is placed at `SUM`, `MONITOR`, or a later node,
+not before the offset is injected.
+
+The lab debugging with Xinyu also showed a more subtle but important case: the
+offset range can be real but small compared with the waveform entering through
+`PREIN`. If `GPREIN` is too large, the error-signal contribution dominates the
+`SUM` node. If `GSUM` or later output gain is too small, the resulting DC shift
+can be hard to see on the oscilloscope. A simplified model is:
+
+$$
+V_{\mathrm{SUM}}
+\approx
+-R_{\mathrm{fb,SUM}}
+\left(
+\frac{V_{\mathrm{PREIN}}}{R_{\mathrm{PREIN}}}
++
+\frac{V_{\mathrm{offset}}}{R_{\mathrm{offset}}}
+\right)
+$$
+
+The relative visibility of the offset is therefore set by both the actual
+offset range and the signal contribution entering the same summing node. During
+tuning, it can be useful to reduce `GPREIN` and increase `GSUM` in opposite
+directions so that the monitor amplitude remains usable while the error-signal
+amplitude becomes comparable to the available offset adjustment range.
+
 This offset/bias path also needs a headroom check. Meeting notes flagged a
 failure mode in related PID/PD boxes where the bias before a later op-amp output
 stage could become too large, approaching the rail-scale range around `15 V`.
@@ -247,8 +282,13 @@ Use scope channel 2 to probe each stage output.
 Recommended input:
 
 $$
-V_{\mathrm{IN}}(t) = \text{zero-centered triangle wave, about } \pm 1~\mathrm{V}
+V_{\mathrm{IN}}(t) = \text{small zero-centered square wave}
 $$
+
+The square wave is preferred for the main debug pass because its amplitude,
+polarity, clipping, and DC shift are easy to see. A triangle wave can still be
+used later as a smooth signal-chain check, but the square wave is the clearer
+choice for finding the stage where a fault first appears.
 
 ### GIN1
 
@@ -257,7 +297,7 @@ Probe `GIN1` output.
 Expected:
 
 ```text
-triangle wave in, triangle wave out
+square wave in, square wave out
 sign depends on the polarity switch
 ```
 
@@ -343,6 +383,101 @@ high-frequency gain, suppresses noise amplification, and improves stability. It
 does not set the main low-frequency integral action in the same way as the
 selected `INT` feedback capacitor.
 
+### Square-Wave Unity-Gain Calibration
+
+For gain calibration, use two oscilloscope channels:
+
+```text
+CH1 = local input of the stage being tested
+CH2 = local output of that stage
+```
+
+For ordinary amplifier stages, define:
+
+$$
+G_{\mathrm{stage}}
+=
+\frac{V_{\mathrm{out,pp}}}{V_{\mathrm{in,pp}}}
+$$
+
+Unity gain means:
+
+$$
+\left|G_{\mathrm{stage}}\right| \approx 1
+$$
+
+The sign may be negative for an inverting stage. For example, if a stage is
+designed to invert, the correct unity setting is:
+
+$$
+V_{\mathrm{out}} \approx -V_{\mathrm{in}}
+$$
+
+Recommended calibration order:
+
+1. `GIN1`: adjust polarity/gain so the output square wave has the expected sign
+   and the same peak-to-peak amplitude as `IN1`.
+2. `PREIN`: adjust `GPREIN` until `PREIN` has the intended sign and the same
+   peak-to-peak amplitude as the local input being compared.
+3. `SUM`: set offset near the desired center, then adjust `GSUM` until the
+   square-wave amplitude is known and useful. The offset knob should mainly
+   move the waveform up or down, not change its peak-to-peak amplitude.
+4. `OPOUT`: inject a square wave through a known final summing input and adjust
+   `G_OUT` for the intended output scaling.
+5. `OPP`: short or disable the integrator, turn on the lock path, and adjust
+   the P control until the `OPP` square-wave amplitude matches the selected
+   reference amplitude.
+
+For the final output stage, there is no single `G_OUT` setting that makes every
+possible input path unity gain, because the input resistors are different. For
+the 10 kOhm auxiliary inputs `FN_GEN`, `GRAT_OFF`, and `SUM_IN3`, unity gain
+requires approximately:
+
+$$
+R_{\mathrm{fb,out}} \approx 10~\mathrm{k\Omega}
+$$
+
+For the P path with `S1-1` open, the `OPP` signal enters through `R30 = 30
+kOhm`, so the same output-gain setting gives only about one third of the
+amplitude:
+
+$$
+\frac{10~\mathrm{k\Omega}}{30~\mathrm{k\Omega}} \approx \frac{1}{3}
+$$
+
+This matches Xinyu's PI calibration note: when `OPP` is calibrated to unity and
+`S1-1` is open, the output terminal should show an inverted signal with
+amplitude around one third of the input used for the final 10 kOhm output-gain
+calibration.
+
+The integrator is different. It cannot be calibrated by forcing
+`Vout_pp/Vin_pp = 1` for a square wave, because a square-wave input should
+produce a ramp or triangle-like output. For the integral branch, check the ramp
+slope:
+
+$$
+\frac{dV_{\mathrm{INT}}}{dt}
+=
+-\frac{V_{\mathrm{SUM}}}{R_{\mathrm{I,eff}}C_{\mathrm{I,eff}}}
+$$
+
+If an integral unity-gain condition is needed, it must be defined at a chosen
+frequency:
+
+$$
+\left|H_I(j\omega)\right|
+=
+\frac{1}{\omega R_{\mathrm{I,eff}}C_{\mathrm{I,eff}}}
+$$
+
+so unity at frequency `f` requires:
+
+$$
+R_{\mathrm{I,eff}}C_{\mathrm{I,eff}}
+=
+\frac{1}{2\pi f}
+$$
+
 ## 8. Phase 5: Proportional and Integral Behavior
 
 ### Purpose
@@ -371,6 +506,83 @@ V_{\mathrm{OPP}} \approx -G_{\mathrm{OPP}} V_{\mathrm{SUM}}
 $$
 
 The notes indicate `OPP` has a negative adjustable gain, roughly `0.2` to `10`.
+More explicitly, the `OPP` stage is an inverting amplifier with:
+
+$$
+R_{\mathrm{in,P}} = R25 = 10~\mathrm{k\Omega}
+$$
+
+and feedback:
+
+$$
+R_{\mathrm{fb,P}} = R1 + R_P
+$$
+
+where:
+
+$$
+R1 = 2.2~\mathrm{k\Omega}, \qquad R_P = 0\text{--}100~\mathrm{k\Omega}
+$$
+
+Therefore:
+
+$$
+G_{\mathrm{OPP}}
+=
+-\frac{R1+R_P}{R25}
+=
+-0.22\text{ to }-10.22
+$$
+
+If the final output stage is included, the P contribution depends strongly on
+`S1-1`. With `S1-1` open, the `OPP` output enters `OPOUT` through:
+
+$$
+R30 = 30~\mathrm{k\Omega}
+$$
+
+With `S1-1` closed, `R36 = 3 kOhm` is connected in parallel with `R30`, so:
+
+$$
+R_{\mathrm{P,out,closed}}
+=
+R30 \parallel R36
+=
+\frac{30~\mathrm{k\Omega}\cdot 3~\mathrm{k\Omega}}
+{30~\mathrm{k\Omega}+3~\mathrm{k\Omega}}
+=
+2.727~\mathrm{k\Omega}
+$$
+
+The final output feedback is approximately:
+
+$$
+R_{\mathrm{fb,out}} = R78 + R_{G\_OUT}
+=
+2.2~\mathrm{k\Omega}\text{ to }102.2~\mathrm{k\Omega}
+$$
+
+Thus the total P-path contribution from `SUM` to `OUT` is approximately:
+
+$$
+G_{\mathrm{P,total}}
+=
+\frac{R_{\mathrm{fb,P}}}{R25}
+\frac{R_{\mathrm{fb,out}}}{R_{\mathrm{P,out}}}
+$$
+
+where `R_P,out = R30` if `S1-1` is open and
+`R_P,out = R30 || R36` if `S1-1` is closed. This gives:
+
+| `S1-1` state | `R_P,out` | Approximate total P gain from `SUM` to `OUT` |
+|---|---:|---:|
+| open | `30 kOhm` | `+0.016` to `+34.8` |
+| closed | `2.727 kOhm` | `+0.177` to `+383` |
+
+The total sign is positive because the signal is inverted by `OPP` and inverted
+again by `OPOUT`. The large numerical range is an electrical capability, not a
+recommended starting point. Initial lock attempts should use low P and low
+`G_OUT`.
 
 ### I-Only or I-Dominant Test
 
@@ -433,6 +645,22 @@ Thus changing an input resistor and changing a leakage/discharge resistor can
 produce curves that look superficially similar over a limited simulation window,
 but they are not the same circuit operation. The input resistor mainly changes
 integration rate; the parallel resistor limits long-time drift and saturation.
+
+For the first integrator calibration described in Xinyu's PI note, short the P
+branch, turn on the lock path, and turn off the selectable switches in `S1` so
+that the default integration capacitance is `1 nF`. Then turn the I-gain pot to
+the maximum-resistance setting. For a fixed capacitance, this should produce the
+smallest ramp slope:
+
+$$
+\left|\frac{dV_{\mathrm{INT}}}{dt}\right|
+=
+\frac{|V_{\mathrm{SUM}}|}
+{R_{\mathrm{I,eff}}C_{\mathrm{I,eff}}}
+$$
+
+Increasing either the integration resistance or the integration capacitance
+reduces integral gain. Decreasing either one increases integral gain.
 
 ### Relevant Internal Switches
 
@@ -568,11 +796,11 @@ than assumed.
 
 | Test point | Input | Expected output |
 |---|---|---|
-| `GIN1` | zero-centered triangle | triangle, sign selected by polarity switch |
-| `PREIN` | `GIN1` triangle | inverted triangle, adjustable gain |
-| `SUM` | `PREIN` triangle | inverted/scaled triangle plus offset term |
+| `GIN1` | zero-centered square | square, sign selected by polarity switch |
+| `PREIN` | `GIN1` square | inverted square, adjustable gain |
+| `SUM` | `PREIN` square | inverted/scaled square plus offset DC shift |
 | `MONITOR` | internal `SUM` signal | same as `SUM` |
-| `OPP` | `SUM` signal | proportional inverted/scaled signal |
+| `OPP` | `SUM` square | proportional inverted/scaled square |
 | `INT` | zero-centered square | ramp/triangle or RC-like charging waveform |
 | `C_PROP` | current-lock input signal | negative adjustable gain |
 | `OPOUT` | P/I/aux inputs | weighted sum into final output |
@@ -587,7 +815,7 @@ than assumed.
 | Output railed at `+15 V` or `-15 V` | excessive gain, offset too large, wrong polarity, broken feedback | reduce gain, center offset, inspect feedback path |
 | Integrator ramps with no intentional input | DC offset, leakage, switch state, op-amp offset | zero input, lock switch, capacitor switch, offset trim |
 | MONITOR correct but OUT wrong | issue after `SUM` | `OPP`, `INT`, `OPOUT`, front-panel output wiring |
-| Offset knob has no effect | offset pot wiring, wrong `JP1`, reference failure | `REF02`, `-5 V`, `JP1`, pot wiper |
+| Offset knob has no effect | wrong `JP1`, AC coupling, wrong probe node, offset too small compared with PREIN, reference failure | `REF02`, `-5 V`, `JP1`, DC coupling, `SUM`/`MONITOR` |
 | Grating offset has no effect | broken `GRAT_OFF` path or `R94` wiring | continuity from front panel to `R94` to `OPOUT` |
 | Some switches do nothing visibly | wrong node probed, switch controls another branch, internal switch inaccessible | map switch to schematic and probe both sides |
 | Current lock runs away | current polarity wrong or gain too high | current-lock polarity and `C_PROP` gain |
@@ -610,19 +838,68 @@ saturated-absorption photodiode/error signal
 -> laser cavity length/frequency correction
 ```
 
+The PID circuit does not know the desired optical lock point by itself. The
+experimenter chooses it from the spectroscopy signal. First scan the laser
+open-loop across the saturated-absorption feature and identify the desired
+transition or detuned point. For a dispersive error signal, the natural lock
+point is often the zero crossing of the selected feature. For a side-of-fringe
+lock, the chosen point may instead be a fixed voltage on a slope.
+
+The offset control then tells the PID which point should count as zero error.
+If the desired optical frequency is `nu_0`, choose the offset so that:
+
+$$
+V_{\mathrm{raw\ error}}(\nu_0)
++
+V_{\mathrm{offset}}
+=
+0
+$$
+
+After this adjustment, the PID will try to enforce:
+
+$$
+V_{\mathrm{MONITOR}} \approx 0
+$$
+
+at the chosen spectroscopy point.
+
 Practical order:
 
 1. Disconnect or disable the actuator.
-2. Confirm the error signal is centered and has the expected slope.
-3. Use `MONITOR` to observe the internal error signal.
-4. Start with low proportional gain.
-5. Verify loop sign: a small positive frequency perturbation should produce a
+2. Scan the laser open-loop and identify the spectroscopy feature or
+   zero-crossing that should define the lock point.
+3. Use offset to place that selected point near zero on `MONITOR`.
+4. Confirm the error signal has the expected slope at the selected point.
+5. Start with low proportional gain and the integrator disabled or shorted.
+6. Verify loop sign: a small positive frequency perturbation should produce a
    correction that drives the error back toward zero.
-6. Enable proportional feedback first.
-7. Add integral action slowly to remove steady-state error.
-8. Watch for rail saturation, slow wind-up, or oscillation.
-9. Adjust the selected integrator capacitor/time constant.
-10. Record final switch states, pot settings, and measured waveforms.
+7. Enable proportional feedback first.
+8. Increase P gain gradually until the error is well suppressed but not
+   oscillating. If ringing or oscillation appears, back the P gain down.
+9. Add integral action slowly to remove steady-state error and slow drift.
+10. Watch for rail saturation, slow wind-up, or low-frequency oscillation.
+11. Adjust the selected integrator capacitor/time constant.
+12. Record final switch states, pot settings, and measured waveforms.
+
+For the 780 nm repumper ECDL case described by Carlos, the saturated-absorption
+photodiode signal is the error signal. The PID output drives the PZT on the
+homebuilt ECDL grating. Changing PZT voltage tilts the grating, changes the
+external-cavity length, and pulls the laser frequency back toward the selected
+spectroscopy lock point. The gain is correct only if closing the loop reduces
+the observed error. If the error grows or the output runs away, stop and reverse
+the relevant polarity before increasing gain.
+
+During PI tuning, use these rules:
+
+1. If the lock is weak or the error is barely corrected, increase P gain
+   cautiously.
+2. If the lock rings or oscillates quickly, reduce P gain or output gain.
+3. If there is a steady-state offset after P-only lock, enable or increase I.
+4. If the locked signal has slow oscillation, reduce integral gain by increasing
+   the integration resistance or selected capacitance.
+5. If the output slowly rails, reduce I gain, re-center the offset, and check
+   for DC bias at `SUM`/`MONITOR`.
 
 The same saturated-absorption signal can also be used to estimate laser
 frequency noise during tuning. Place the laser frequency on the side of an
@@ -657,10 +934,11 @@ Use one row per test condition.
 |---|---|---|---|---|---|---|---|---|---|
 |  | Power only | none | ICs removed | n/a | `+15 V`, `-15 V` | rails correct |  |  |  |
 |  | Reference | none | `JP1 = 1-2` | offset swept | `+5 V`, `-5 V` | refs correct |  |  |  |
-|  | Input chain | triangle | polarity set | gains near 1 | `GIN1`, `PREIN`, `SUM` | sign/gain match |  |  |  |
-|  | Bias/headroom | triangle or DC sweep | offset routed | gains low | `SUM`, `OPP`, `OPOUT` inputs | no near-rail bias |  |  |  |
+|  | Input chain | zero-centered square | polarity set | gains near 1 | `GIN1`, `PREIN`, `SUM` | sign/gain match |  |  |  |
+|  | Bias/headroom | square or DC sweep | offset routed | gains low | `SUM`, `OPP`, `OPOUT` inputs | no near-rail bias |  |  |  |
 |  | Integrator | zero-centered square | selected `S1` | I gain set | `INT` | ramp/RC waveform |  |  |  |
 |  | Output | small signal | lock off/on tested | `G_OUT` swept | `OUT` | bounded output |  |  |  |
+|  | PI tuning | real sat-spec error | actuator connected cautiously | low P, slow I | `MONITOR`, `OUT` | error decreases, no oscillation |  |  |  |
 |  | Laser-noise check | sat-spec side slope | loop open or controlled | low gain | `MONITOR`, scope trace | voltage noise measurable |  |  |  |
 
 ## 16. Acceptance Criteria
@@ -681,3 +959,6 @@ The board is ready for cautious closed-loop testing only when:
 10. Grating-offset continuity through `R94` is verified.
 11. The final closed-loop sign has been checked using a small, reversible
     perturbation before full lock engagement.
+12. The selected optical lock point is identified from the spectroscopy scan
+    and is brought to `MONITOR ~= 0` using the offset control before final PI
+    tuning.
